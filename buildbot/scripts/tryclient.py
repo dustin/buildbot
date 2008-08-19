@@ -178,6 +178,11 @@ class MercurialExtractor(SourceStampExtractor):
     patchlevel = 1
     vcexe = "hg"
     def getBaseRevision(self):
+        d = self.dovc(["identify", '-r', 'qparent'])
+        d.addCallback(self.parseStatus)
+        d.addErrback(self.getIdentityRevision)
+        return d
+    def getIdentityRevision(self, unused):
         d = self.dovc(["identify"])
         d.addCallback(self.parseStatus)
         return d
@@ -185,7 +190,7 @@ class MercurialExtractor(SourceStampExtractor):
         m = re.search(r'^(\w+)', output)
         self.baserev = m.group(0)
     def getPatch(self, res):
-        d = self.dovc(["diff"])
+        d = self.dovc(["diff", '-r', self.baserev])
         d.addCallback(self.readPatch, self.patchlevel)
         return d
 
