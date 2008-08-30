@@ -960,6 +960,9 @@ class VCBase(SignalMixin):
         return d
     def _do_getpatch_trunkhead_2(self, ss):
         log.msg("_do_getpatch_trunkhead_2")
+        self.failUnless(not (ss.patch is None))
+        self.failUnlessIn("try",ss.patch[1])
+        log.msg(ss.patch[1])
         d = self.doBuild(ss=ss)
         d.addCallback(self._do_getpatch_trunkhead_3)
         return d
@@ -975,6 +978,7 @@ class VCBase(SignalMixin):
         # now try a tree from an older revision. We need at least two
         # revisions here, so we might have to create one first
         if len(self.helper.trunk) < 2:
+            log.msg("Need more revs")
             d = self.helper.vc_revise()
             d.addCallback(self._do_getpatch_trunkold_1)
             return d
@@ -991,6 +995,8 @@ class VCBase(SignalMixin):
         return d
     def _do_getpatch_trunkold_3(self, ss):
         log.msg("_do_getpatch_trunkold_3")
+        self.failUnless(not (ss.patch is None))
+        self.failUnlessIn("try",ss.patch[1])
         d = self.doBuild(ss=ss)
         d.addCallback(self._do_getpatch_trunkold_4)
         return d
@@ -2387,7 +2393,8 @@ class MercurialHelper(BaseHelper):
         rmdirRecursive(tmp)
     vc_revise = deferredGenerator(vc_revise)
 
-    def vc_try_checkout(self, workdir, rev, branch=None):
+    def vc_try_checkout_(self, workdir, rev, branch=None):
+        log.msg("vc_try_checkout")
         assert os.path.abspath(workdir) == workdir
         if os.path.exists(workdir):
             rmdirRecursive(workdir)
@@ -2401,7 +2408,10 @@ class MercurialHelper(BaseHelper):
         open(try_c_filename, "w").write(TRY_C)
         future = time.time() + 2*self.version
         os.utime(try_c_filename, (future, future))
-    vc_try_checkout = deferredGenerator(vc_try_checkout)
+        if self.runMqTest:
+            log.msg("run Mq tests")
+            self.dovc(workdir, "qnew -f patch.diff")
+    vc_try_checkout = deferredGenerator(vc_try_checkout_)
 
     def vc_try_finish(self, workdir):
         rmdirRecursive(workdir)
@@ -2510,8 +2520,35 @@ class Mercurial(VCBase, unittest.TestCase):
     def testTry(self):
         self.helper.vcargs = { 'baseURL': self.helper.hg_base + "/",
                                'defaultBranch': "trunk" }
+        self.helper.runMqTest = False
         d = self.do_getpatch()
         return d
+
+    def testTryMq(self):
+        ''' test Try with an mq applied '''
+
+        try:
+            import hgext.mq
+        except ImportError:
+            raise unitTest.SkipTest("mq not available")
+
+        self.helper.vcargs = { 'baseURL': self.helper.hg_base + "/",
+                               'defaultBranch': "trunk" }
+
+        self.helper.runMqTest = True
+        '''
+        def vc_try_checkout_mq(self, workdir, rev, branch=None):
+            log.msg("vc_try_checkout_mq")
+            self.vc_try_checkout_(workdir, rev, branch)
+            self.dovc(workdir, "qnew -f patch.diff")
+        vc_try_checkout_mq = deferredGenerator(vc_try_checkout_mq)
+
+        MercurialHelper.vc_try_checkout = vc_try_checkout_mq
+        '''
+        d = self.do_getpatch(doBranch=False)
+        return d
+
+
 
 VCS.registerVC(Mercurial.vc_name, MercurialHelper())
 
