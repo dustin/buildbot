@@ -2319,13 +2319,30 @@ VCS.registerVC(Bzr.vc_name, BzrHelper())
 class MercurialHelper(BaseHelper):
     branchname = "branch"
     try_branchname = "branch"
+    _qnew_supported = None
 
     def capable(self):
         hgpaths = which("hg")
         if not hgpaths:
             return (False, "Mercurial is not installed")
         self.vcexe = hgpaths[0]
-        return (True, None)
+
+        # test whether it supports 'qnew'
+        msg = "Add 'hgext.mq =' to the '[extensions]' section of ~/.hgrc"
+        if MercurialHelper._qnew_supported is None:
+            d = self.runCommand(".", "%s --help" % self.vcexe,
+                                failureIsOk=False, stdin=None, env=None)
+            def check_help(result):
+                if re.search('qnew', result):
+                    MercurialHelper._qnew_supported = True
+                    return (True, None)
+                else:
+                    MercurialHelper._qnew_supported = False
+                    return (False, msg)
+            d.addCallback(check_help)
+            return d
+        else:
+            return (MercurialHelper._qnew_supported, msg)
 
     def extract_id(self, output):
         m = re.search(r'^(\w+)', output)
