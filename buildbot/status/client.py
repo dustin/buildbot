@@ -370,6 +370,10 @@ class StatusClientPerspective(base.StatusReceiverPerspective):
             s.unsubscribe(self)
         self.subscribed = None
 
+    def perspective_getURLForThing(self, t):
+        # XXX:  A bit of a hack.  I need a generic unwrap mechanism.
+        return self.status.getURLForThing(t.b)
+
     def perspective_subscribe(self, mode, interval, target):
         """The remote client wishes to subscribe to some set of events.
         'target' will be sent remote messages when these events happen.
