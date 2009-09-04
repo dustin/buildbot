@@ -73,17 +73,21 @@ class GoogleCodeHook(base.ChangeSource):
             http_port = "tcp:%d" % http_port
         self.http_port = http_port
 
-        self.handler = resource.Resource()
-        self.handler.putChild("gcode-hook", HookHandler(self.gotChanges))
-        self.site = server.Site(self.handler)
-        self.websrv = strports.service(self.http_port, self.site)
+        self.handler = HookHandler(self.gotChanges)
         self.split_file_function = split_file or svnpoller.split_file_alwaystrunk
+        self.createWebServer(self.http_port, self.handler)
 
     def split_file(self, path):
         # use getattr() to avoid turning this function into a bound method,
         # which would require it to have an extra 'self' argument
         f = getattr(self, "split_file_function")
         return f(path)
+
+    def createWebServer(self, http_port, handler):
+        self.root_handler = resource.Resource()
+        self.root_handler.putChild("gcode-hook", HookHandler(self.gotChanges))
+        self.site = server.Site(self.root_handler)
+        self.websrv = strports.service(self.http_port, self.site)
 
     def startService(self):
         self.websrv.startService()
