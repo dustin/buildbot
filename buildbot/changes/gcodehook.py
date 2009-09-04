@@ -114,6 +114,8 @@ class GoogleCodeHook(base.ChangeSource):
         branches = {}
 
         for file in files:
+            if len(file) > 0 and file[0] == '/':
+                file = file[1:]
             where = self.split_file(file)
             if where:
                 branch, filename = where
