@@ -102,7 +102,7 @@ class GoogleCodeHook(base.ChangeSource):
             for change in self.changesFromHookData(revision):
                 self.addChange(change)
 
-    def bbotChangesFromHookData(revision):
+    def changesFromHookData(self, revision):
         files = []
         files.extend(revision['added'])
         files.extend(revision['modified'])
