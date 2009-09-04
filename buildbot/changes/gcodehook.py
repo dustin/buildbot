@@ -40,7 +40,6 @@ class HookHandler(resource.Resource):
         f = getattr(self, "gotChanges")
         f(data["revisions"])
 
-
         req.setResponseCode(200)
         req.setHeader("Content-Type", "text/plain")
         return "Success.\n"
@@ -68,7 +67,7 @@ class GoogleCodeHook(base.ChangeSource):
 
      return (None, path)
     """
-    def __init__(self, http_port=None, split_file=None):
+    def __init__(self, http_port, split_file=None):
         if type(http_port) is int:
             http_port = "tcp:%d" % http_port
         self.http_port = http_port
@@ -133,4 +132,3 @@ class GoogleCodeHook(base.ChangeSource):
                 revlink = revision['url'],
                 when = revision['timestamp']
             )
-
